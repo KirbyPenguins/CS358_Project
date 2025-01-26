@@ -64,7 +64,7 @@ class Lit():
 
 @dataclass
 class Let():
-    name = str
+    name : str
     value : Expr
     body : Expr
     def __str__(self):
@@ -117,6 +117,38 @@ def eval(e: Expr) -> Value:
 
 def evalInEnv(env: Env[Value], e: Expr) -> Value:
     match e:
+        # handles the addition
+        case Add(left, right):
+            match (evalInEnv(env, left), evalInEnv(env, right)):
+                case (Lit(l), Lit(r)):
+                    return Lit(l + r)
+                case _:
+                    raise evalError("Addition requires two integer literals")
+
+        # handles the subtraction
+        case Sub(left, right):
+            match (evalInEnv(env, left), evalInEnv(env, right)):
+                case (Lit(l), Lit(r)):
+                    return Lit(l - r)
+                case _:
+                    raise evalError("Subtraction requires two integer literals")
+
+        #Handles the division
+        case Mul(left, right):
+            match (evalInEnv(env, left), evalInEnv(env, right)):
+                case (Lit(l), Lit(r)):
+                    return Lit(l * r)
+                case _:
+                    raise evalError("Multiplication requires two integer literals")
+
+        # handles the division
+        case Div(left, right):
+            match (evalInEnv(env, left), evalInEnv(env, right)):
+                case (Lit(l), Lit(r)):
+                    return Lit(l / r)
+                case _:
+                    raise evalError("Division requires two integer literals")
+
         # handles the rotate image
         case rotate(image) :
             img = Image.open(image)
@@ -150,60 +182,38 @@ def evalInEnv(env: Env[Value], e: Expr) -> Value:
         case _:
             raise evalError(f"Unknown expression: {e}")
 
-    '''
-    image1 = Name("Image/image1.jpg")
-    image2 = Name("Image/image2.jpg")
-    print("literal: ", image1)
-    raster = Image.open(image1.name)
-    raster2 = Image.open(image2.name)
 
-    try:
-        print("raster: ", raster)
-        print("raster2: ", raster2)
-
-        rotated_image = rotate(image = raster)
-
-        rotated_image = raster.rotate(90)
-        #rotated_image.show()
-
-
-        combined_image = combine(image1 = raster, image2 = raster2)
-        w = raster.size[0] + raster2.size[0]
-        h = max(raster.size[1], raster2.size[1])
-        combined_image = Image.new("RGB", (w, h))
-        combined_image.paste(raster, (0, 0))
-        combined_image.paste(raster2, (raster.size[0], 0))
-        #combined.show()
-        combined_image.save("Image/combined.jpg")
-        combined_image.show()
-    except:
-        print("Error: Unable to find file")
-        return
-    '''
-
-def run():
+def run(e: Expr) -> None:
     # Example of how to use the DSL
-        expr = combine("Image/image1.jpg", "Image/image2.jpg")
-        try:
-            # Evaluate the expression
-            result = evalInEnv(empty_env, expr)
-        
-            # Save the result as answer.png
+    print(f"Running {e}")
+    try:
+         # Evaluate the expression
+        result = eval(e)
+        if isinstance(result, Image.Image):
+            result.show()
             result.save("answer.png")
-        
-            # Optionally, open the result with the default viewer
-            result.show()  # This should automatically open the image if possible
+        else:
+            print(f"Result: {result}") 
+        # Optionally, open the result with the default viewer
 
-        except evalError as e:
-            print(f"Evaluation error: {e}")
+    except evalError as e:
+        print(f"Evaluation error: {e}")
 
-
+# Test condition
+image1_path = "Image/image1.jpg"
+image2_path = "Image/image2.jpg"
 
     
+# Define the expression
+# Define the expression to combine the images
+test_expr = Let(
+    name = "combined_image",  # Name of the variable
+    value = combine(image1_path, image2_path),  # Expression to combine the images
+    body = Name("combined_image")  # Access the resulting combined image
+)
 
-
-if __name__ == "__main__":
-    run()
+# Run the expression
+run(test_expr)
 
 # Here is the link to the Pillow https://pillow.readthedocs.io/en/stable/handbook/tutorial.html
 '''
