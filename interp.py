@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from PIL import Image
 
 
-type Operation = rotate | combine
+type Action = rotate | combine
 
 @dataclass
 class rotate():
@@ -15,10 +15,11 @@ class rotate():
 class combine():
     image1 : Image.Image
     image2 : Image.Image
+
     def __str__(self):
         return f"combine({self.image1}, {self.image2})"
 
-type Literal = Name
+type Literal = Name | Image.Image
 type Expr = Add | Sub | Mul | Div | Lit | Let  
 
 
@@ -53,6 +54,7 @@ class Div():
     def __str__(self):
         return f"Div({self.left}, {self.right})"
 
+
 @dataclass
 class Lit():
     value : int
@@ -76,21 +78,125 @@ class Name():
         return self.name
 
 
-def run():
-    file_name = Name("Image/image1.jpg")
-    print("literal: ", file_name)
+type Binding[V] = tuple[str, V]
+type Env[V] = list[Binding[V], ...] # type:ignore this is a type with a arbitary length 
+
+from typing import Any
+
+empty_env : Env[Any] = ()
+
+def extendEnv[V](env : Env[V], name : str, value : V) -> Env[V]:
+    return env + ((name, value),)
+
+
+def lookupEnv[V](name: str, env: Env[V]) -> (V | None) :
+    '''Return the first value bound to name in the input environment env
+    (or raise an exception if there is no such binding)'''
+    # exercises2b.py shows a different implementation alternative
+    match env:
+        case ((n,v), *rest) :
+            if n == name:
+                return v
+            else:
+                return lookupEnv(name, rest) # type:ignore
+        case _ :
+            return None
+
+
+class evalError(Exception):
+    pass
+
+class Path:
+    p: tuple[Action, ...]
+
+
+type Value = Image.Image | Path
+
+def eval(e: Expr) -> Value:
+    return evalInEnv(empty_env, e)
+
+def evalInEnv(env: Env[Value], e: Expr) -> Value:
+    match e:
+        # handles the rotate image
+        case rotate(image) :
+            img = Image.open(image)
+            return img.rotate(90)
+
+        # handles the combine image
+        case combine(image1, image2) :
+            img1 = Image.open(image1)
+            img2 = Image.open(image2)
+            if img1.size[1] != img2.size[1]:
+                raise EvalError("Images must have the same height")
+            w = img1.size[0] + img2.size[0]
+            h = max(img1.size[1], img2.size[1])
+            combined_image = Image.new("RGB", (w, h))
+            combined_image.paste(img1, (0, 0))
+            combined_image.paste(img2, (img1.size[0], 0))
+            return combined_image
+
+        #handles the literals(file path)
+        case Name (name) :
+            v = lookupEnv(name, env)
+            if v is None:
+                raise EvalError(f"Name {name} not found")
+            return v
+        
+        case Let(name, value, body) :
+            v = evalInEnv(env, value)
+            new_env = extendEnv(env, name, v)
+            return evalInEnv(extendEnv(env, name, v), body)
+
+        case _:
+            raise evalError(f"Unknown expression: {e}")
+
+    '''
+    image1 = Name("Image/image1.jpg")
+    image2 = Name("Image/image2.jpg")
+    print("literal: ", image1)
+    raster = Image.open(image1.name)
+    raster2 = Image.open(image2.name)
 
     try:
-        raster = Image.open(file_name.name)
         print("raster: ", raster)
+        print("raster2: ", raster2)
 
         rotated_image = rotate(image = raster)
-        rotated_image = raster.rotate(90)
-        rotated_image.show()
 
+        rotated_image = raster.rotate(90)
+        #rotated_image.show()
+
+
+        combined_image = combine(image1 = raster, image2 = raster2)
+        w = raster.size[0] + raster2.size[0]
+        h = max(raster.size[1], raster2.size[1])
+        combined_image = Image.new("RGB", (w, h))
+        combined_image.paste(raster, (0, 0))
+        combined_image.paste(raster2, (raster.size[0], 0))
+        #combined.show()
+        combined_image.save("Image/combined.jpg")
+        combined_image.show()
     except:
         print("Error: Unable to find file")
         return
+    '''
+
+def run():
+    # Example of how to use the DSL
+        expr = combine("Image/image1.jpg", "Image/image2.jpg")
+        try:
+            # Evaluate the expression
+            result = evalInEnv(empty_env, expr)
+        
+            # Save the result as answer.png
+            result.save("answer.png")
+        
+            # Optionally, open the result with the default viewer
+            result.show()  # This should automatically open the image if possible
+
+        except evalError as e:
+            print(f"Evaluation error: {e}")
+
 
 
     
@@ -98,6 +204,7 @@ def run():
 
 if __name__ == "__main__":
     run()
+
 # Here is the link to the Pillow https://pillow.readthedocs.io/en/stable/handbook/tutorial.html
 '''
 The purpose of this project is to create a simple image manipulation language. While 
