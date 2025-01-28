@@ -67,7 +67,7 @@ class Or():
 class And():
     left : Expr
     right : Expr
-    def __str__(self) -> str:
+    def __str__(self):
         return f"and({self.left}, {self.right})"
 
 @dataclass
@@ -147,14 +147,10 @@ def lookupEnv[V](name: str, env: Env[V]) -> (V | None) :
     '''Return the first value bound to name in the input environment env
     (or raise an exception if there is no such binding)'''
     # exercises2b.py shows a different implementation alternative
-    match env:
-        case ((n,v), *rest) :
-            if n == name:
-                return v
-            else:
-                return lookupEnv(name, rest) # type:ignore
-        case _ :
-            return None
+    for n, v in reversed(env):  # Start from the most recent binding
+        if n == name:
+            return v
+    return None
 
 
 class evalError(Exception):
@@ -210,8 +206,10 @@ def evalInEnv(env: Env[Value], e: Expr) -> Value:
             left_val = evalInEnv(env, left)
             right_val = evalInEnv(env, right)
             if type(left_val) == int and type(right_val) == int:
+                if right_val == 0:
+                    raise evalError("You cannot divide by Zero")
                 return left_val // right_val
-            else:
+            else: 
                 raise evalError("Division requires two integer literals")
 
         # handles the rotate image
@@ -253,36 +251,31 @@ def evalInEnv(env: Env[Value], e: Expr) -> Value:
                 case _:
                     raise evalError(f"Unknown literal: {lit}")
 
-        case Or(left, right) :
+        case Or(left, right):
             left_val = evalInEnv(env, left)
-            right_val = evalInEnv(env, right)
-            if left_val == True:
-                return True
-            elif type(right_val) == int:
-                raise evalError("Or requires two boolean literals")
-            elif type(left_val) == int:
-                raise evalError("Or requires two boolean literals")
-            elif type (right_val) == bool:
-                if right_val == False:
-                    return False
-                else:
+            if isinstance(left_val, bool):
+                if left_val:
                     return True
+                right_val = evalInEnv(env, right)
+                if isinstance(right_val, bool):
+                    return left_val or right_val
+                else:
+                    raise evalError("Or requires two boolean literals")
+            else:
+                raise evalError("Or requires two boolean literals")
 
-
-        case And(left, right) :
+        case And(left, right):
             left_val = evalInEnv(env, left)
-            right_val = evalInEnv(env, right)
-            if right_val == False:
-                return False
-            elif type(right_val) == int:
-                raise evalError("And requires two boolean literals")
-            elif type(left_val) == int:
-                raise evalError("And requires two boolean literals")
-            elif type (right_val) == bool:
-                if right_val == True:
-                    return True
-                else:
+            if isinstance(left_val, bool):
+                if not left_val:
                     return False
+                right_val = evalInEnv(env, right)
+                if isinstance(right_val, bool):
+                    return left_val and right_val
+                else:
+                    raise evalError("And requires two boolean literals")
+            else:
+                raise evalError("And requires two boolean literals")
 
 
         case Not(value) :
@@ -296,28 +289,48 @@ def evalInEnv(env: Env[Value], e: Expr) -> Value:
 
 
         case Eq(left, right) :
-            l = evalInEnv(env, left)
-            r = evalInEnv(env, right)
-            if l == r:
-                return True
+            left_val = evalInEnv(env, left)
+            right_val = evalInEnv(env, right)
+            if type (left_val) == bool:
+                if type (right_val) == bool:
+                    if left_val == True and right_val == True:
+                        return True
+                    elif left_val == False and right_val == False:
+                        return True
+                    else:
+                        return False
+                else:
+                    raise evalError("Eq requires a Boolean")
+            elif type(left_val) == int and type(right_val) == int:
+                if left_val == right_val:
+                    return True
+                else:
+                    return False
             else:
-                return False
+                raise evalError("Eq requires a Boolean")
+
 
         case Lt(left, right) :
-            l = evalInEnv(env, left)
-            r = evalInEnv(env, right)
-            if l < r:
-                return True
+            left_val = evalInEnv(env, left)
+            right_val = evalInEnv(env, right)
+            if type(left_val) == int and type(right_val) == int:
+                if left_val < right_val:
+                    return True
+                else:
+                    return False
             else:
-                return False
+                raise evalError("Lt requires a Boolean")
 
-        case If(condition, then_branch, else_branch) :
+        case If(condition, then_branch, else_branch):
             c = evalInEnv(env, condition)
-            if c == True:
-                return evalInEnv(env, then_branch)
+            if isinstance(c, bool):
+                if c:
+                    return evalInEnv(env, then_branch)
+                else:
+                    return evalInEnv(env, else_branch)
             else:
-                return evalInEnv(env, else_branch)
-
+                raise evalError("If condition must be a boolean")
+                
         case _:
             raise evalError(f"Unknown expression: {e}")
 
@@ -349,21 +362,13 @@ image2_path = "Image/image2.jpg"
 # Define the expression to combine two images twice
 
 # Run the expression
+test1 : Expr = And(Lit(False), Lit(6))
+run(test1)
 
-test : Expr = Let('x',
-                   Lit(19),
-                   Let('x',
-                       Lit(20),
-                       Add(Name('x'), Name('x')
-                           )
-                       )
-                   )
-run(test)
 # Here is the link to the Pillow https://pillow.readthedocs.io/en/stable/handbook/tutorial.html
 '''
 The purpose of this project is to create a simple image manipulation language. While 
 using the Pillow library. We will create AST node definitions and then create a run 
 method. The run method will take an expression and evaluate it. The expression will
 be a combination of literals, addition, subtraction, multiplication, division, and
-
 '''
