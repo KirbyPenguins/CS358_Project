@@ -9,13 +9,13 @@ type Expr = Add | Sub | Mul | Div | Lit | Let  | Neg | And | Or | Not | Eq | Lt 
 
 @dataclass
 class opacity():
-    image = Image.Image
+    image : Image.Image
     def __str__(self) -> str:
         return f"Opacity({self.image})"
 
 @dataclass
 class image_color():
-    image = Image.Image
+    image : Image.Image
     def __str__(self) -> str:
         return f"Color({self.image})"
 
@@ -141,7 +141,7 @@ class Div():
 
 @dataclass
 class Lit():
-    value : int | bool
+    value : int | bool | Image.Image
     def __str__(self) -> str:
         return f"Literal({self.value})"
 
@@ -247,9 +247,9 @@ def evalInEnv(env: Env[Value], e: Expr) -> Value:
 
         # handles the rotate image
         case rotate(image) :
-            #img = Image.open(image)
-            if isinstance(image, Image.Image):
-                return image.rotate(90)
+            img = evalInEnv(env,image)
+            if isinstance(img, Image.Image):
+                return img.rotate(90)
             else:
                 return evalError("You can only rotate Photos")
 
@@ -257,16 +257,19 @@ def evalInEnv(env: Env[Value], e: Expr) -> Value:
         case combine(image1, image2) :
             #img1 = Image.open(image1)
             #img2 = Image.open(image2)
-            img1 = image1
-            img2 = image2
-            if img1.size[1] != img2.size[1]:
-                raise evalError("Images must have the same height")
-            w = img1.size[0] + img2.size[0]
-            h = max(img1.size[1], img2.size[1])
-            combined_image = Image.new("RGB", (w, h))
-            combined_image.paste(img1, (0, 0))
-            combined_image.paste(img2, (img1.size[0], 0))
-            return combined_image
+            img1 = evalInEnv(env,image1)
+            img2 = evalInEnv(env, image2)
+            if isinstance(img1, Image.Image) and isinstance(img2, Image.Image):
+                if img1.size[1] != img2.size[1]:
+                    raise evalError("Images must have the same height")
+                w = img1.size[0] + img2.size[0]
+                h = max(img1.size[1], img2.size[1])
+                combined_image = Image.new("RGB", (w, h))
+                combined_image.paste(img1, (0, 0))
+                combined_image.paste(img2, (img1.size[0], 0))
+                return combined_image
+            else:
+                raise evalError("Both operands must be images")
 
         #handles the literals(file path)
         case Name (name) :
@@ -284,8 +287,10 @@ def evalInEnv(env: Env[Value], e: Expr) -> Value:
             match lit:
                 case int(i):
                     return i
-                case combine() | rotate():
-                    return Path((lit,))
+                case bool(b):
+                    return b
+                case Image.Image():
+                    return lit
                 case _:
                     raise evalError(f"Unknown literal: {lit}")
 
@@ -324,7 +329,6 @@ def evalInEnv(env: Env[Value], e: Expr) -> Value:
                 return True
             elif type(val) == int:
                 raise evalError("Not requires a boolean literal")
-
 
         case Eq(left, right) :
             left_val = evalInEnv(env, left)
@@ -372,18 +376,20 @@ def evalInEnv(env: Env[Value], e: Expr) -> Value:
                 raise evalError("If condition must be a boolean")
 
         case darken(image):
-            if isinstance(image, Image.Image):
-                enhancer = ImageEnhance.Brightness(image)
+            img = evalInEnv(env, image)
+            if isinstance(img, Image.Image):
+                enhancer = ImageEnhance.Brightness(img)
                 return enhancer.enhance(0.5)
             else:
-                raise evalError("Can only Lighten an image")
+                raise evalError("Darken requires an image")
 
         case lighten(image):
-            if isinstance(image,Image.Image):
-                enhancer = ImageEnhance.Brightness(image)
-                return enhancer.enhance(1.5)  # Lighten the image
+            img = evalInEnv(env, image)
+            if isinstance(img, Image.Image):
+                enhancer = ImageEnhance.Brightness(img)
+                return enhancer.enhance(1.5)
             else:
-                raise evalError("Cannot lighten an image")
+                raise evalError("Lighten requires an image")
 
         case _:
             raise evalError(f"Unknown expression: {e}")
@@ -406,18 +412,34 @@ def run(e: Expr) -> None:
         print(f"Evaluation error: {e}")
 
 # Test condition
-image1_path = Image.open("Image/image1.jpg")
 image2_path = Image.open("Image/image2.jpg")
+image1_path = Image.open("Image/image1.jpg")
 
-    
-# Define the expression
-# Define the expression to combine the images
+# Define the expression with a proper binding
+# Test Expression #1
+test1: Expr = Let(
+    "image1",  # Name of the variable
+    Lit(image1_path),  # Binding the actual image to "image1"
+    rotate(darken(Name("image1")))  # Using the expression properly
+)
 
-# Define the expression to combine two images twice
-
-# Run the expression
-test1 : Expr = rotate(image1_path)
-run(test1)
+# Test Expression #2
+# Define the expression with the correct transformations
+test2: Expr = Let(
+    "image1",  # Name of the first variable
+    Lit(image1_path),  # Bind image1_path to "image1"
+    Let(  # Another Let to bind "image2"
+        "image2",  # Name of the second variable
+        Lit(image2_path),  # Bind image2_path to "image2"
+        combine(
+            lighten(Name("image1")),  # Apply lightening transformation on image1
+            darken(Name("image2"))    # Apply darkening transformation on image2
+        )
+    )
+)
+# Uncomment out the code below to Run the expressions
+#run(test1)
+#run(test2)
 
 # Here is the link to the Pillow https://pillow.readthedocs.io/en/stable/handbook/tutorial.html
 '''
@@ -425,4 +447,12 @@ The purpose of this project is to create a simple image manipulation language. W
 using the Pillow library. We will create AST node definitions and then create a run 
 method. The run method will take an expression and evaluate it. The expression will
 be a combination of literals, addition, subtraction, multiplication, division, and
+Negate, Equals, less than. This functions implement them and ensures that they are 
+integers or booleans for the respective. 
+
+I have also created my own classes for image manipulations. I have created for rotate,
+and combine. Whenever they are combined or rotate a new photo is made and is saved in a
+answer.png where it is easy to view. There will also be a pop up so that you can also 
+view it through that. 
+
 '''
