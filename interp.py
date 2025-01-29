@@ -2,16 +2,16 @@ from dataclasses import dataclass
 from PIL import Image, ImageEnhance
 
 #new value with info 
-type Color = image_color | opacity
+type Color = image_color | dom_color
 type Literal = Name | Image.Image
 type Expr = Add | Sub | Mul | Div | Lit | Let  | Neg | And | Or | Not | Eq | Lt | If
 
 
 @dataclass
-class opacity():
+class dom_color():
     image : Image.Image
-    def __str__(self) -> str:
-        return f"Opacity({self.image})"
+    def __str__(self):
+        return f"Dominant_Color({self.image})"
 
 @dataclass
 class image_color():
@@ -197,6 +197,33 @@ def eval(e: Expr) -> Value:
 
 def evalInEnv(env: Env[Value], e: Expr) -> Value:
     match e:
+        case dom_color(image):
+            image = eval(env, image)  # Evaluate the image expression
+            if isinstance(image, Image.Image):
+                dominant = image.getcolors(maxcolors=1000000)  # Get colors
+                if dominant:
+                    dominant_color = max(dominant, key=lambda x: x[0])[1]
+                    return dominant_color  # Return the dominant color as an (R, G, B) tuple
+                else:
+                    raise evalError("No colors found in image")
+            else:
+                raise evalError("You must provide an image")
+
+        case image_color(image):
+            image = eval(env,img)
+            if isinstance(image, Image.Image): 
+                       # Convert image to RGB if it's not in that mode
+                image = image.convert('RGB')
+                # Get the pixel data
+                pixels = np.array(image)
+                # Calculate the average color
+                avg_color = pixels.mean(axis=(0, 1))  # Mean along the height and width axes
+                # Return the average color as a tuple (R, G, B)
+                return tuple(map(int, avg_color)) 
+            else:
+                raise evalError("You must have images")
+                 
+            
         case Neg(value):
             v = evalInEnv(env, value)
             if type(v) == int:
@@ -353,7 +380,6 @@ def evalInEnv(env: Env[Value], e: Expr) -> Value:
             else:
                 raise evalError("Eq requires two values of the same type")
 
-
         case Lt(left, right) :
             left_val = evalInEnv(env, left)
             right_val = evalInEnv(env, right)
@@ -423,6 +449,7 @@ test1: Expr = Let(
     rotate(darken(Name("image1")))  # Using the expression properly
 )
 
+
 # Test Expression #2
 # Define the expression with the correct transformations
 test2: Expr = Let(
@@ -438,7 +465,7 @@ test2: Expr = Let(
     )
 )
 # Uncomment out the code below to Run the expressions
-#run(test1)
+run(test1)
 #run(test2)
 
 # Here is the link to the Pillow https://pillow.readthedocs.io/en/stable/handbook/tutorial.html
@@ -453,6 +480,7 @@ integers or booleans for the respective.
 I have also created my own classes for image manipulations. I have created for rotate,
 and combine. Whenever they are combined or rotate a new photo is made and is saved in a
 answer.png where it is easy to view. There will also be a pop up so that you can also 
-view it through that. 
+view it through that. (Please not that it takes a little while for the images to combine)
+
 
 '''
