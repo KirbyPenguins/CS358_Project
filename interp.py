@@ -223,7 +223,7 @@ def evalInEnv(env: Env[Value], e: Expr) -> Value:
             else:
                 raise evalError("You must have images")
                  
-            
+        #handles the negate
         case Neg(value):
             v = evalInEnv(env, value)
             if type(v) == int:
@@ -282,8 +282,6 @@ def evalInEnv(env: Env[Value], e: Expr) -> Value:
 
         # handles the combine image
         case combine(image1, image2) :
-            #img1 = Image.open(image1)
-            #img2 = Image.open(image2)
             img1 = evalInEnv(env,image1)
             img2 = evalInEnv(env, image2)
             if isinstance(img1, Image.Image) and isinstance(img2, Image.Image):
@@ -466,18 +464,33 @@ test2: Expr = Let(
 )
 
 # Define the expression with a proper binding
-# Test Expression #1
+# Test Expression #3
 test3: Expr = Let(
     "image1",  # Name of the variable
     Lit(image1_path),  # Binding the actual image to "image1"
     rotate(rotate(Name("image1")))  # Using the expression properly
 )
 
-
+# Test Expression #4
+# should print error
+# Define the expression with the correct transformations
+test4: Expr = Let(
+    "image1",  # Name of the first variable
+    Lit(image1_path),  # Bind image1_path to "image1"
+    Let(  # Another Let to bind "image2"
+        "image2",  # Name of the second variable
+        Lit(3),  # Bind image2_path to "image2"
+        combine(
+            lighten(Name("image1")),  # Apply lightening transformation on image1
+            (Name("image2"))    # Apply darkening transformation on image2
+        )
+    )
+)
 # Uncomment out the code below to Run the expressions
 #run(test1)
 #run(test2)
-run(test3)
+#run(test3)
+run(test4)
 
 # Here is the link to the Pillow https://pillow.readthedocs.io/en/stable/handbook/tutorial.html
 '''
@@ -488,8 +501,15 @@ be a combination of literals, addition, subtraction, multiplication, division, a
 Negate, Equals, less than. This functions implement them and ensures that they are 
 integers or booleans for the respective. 
 
-I have also created my own classes for image manipulations. I have created for rotate,
+For image manipulation I have created the two operators as  rotate,
 and combine. Whenever they are combined or rotate a new photo is made and is saved in a
 answer.png where it is easy to view. There will also be a pop up so that you can also 
-view it through that. (Please not that it takes a little while for the images to combine)
+view it through that. (Please not that it takes a little while for the images to combine).
+
+Another error that has occured is that Whenever I run combine with rotate and a normal image
+the photo will combine even though they are not the same dimensions. The reason for this is 
+because the rotate adds a border with the same height as the previous image therefore making it
+possible. However If you were to combine two images of different heights without rotating it will
+not work and an error will pop up.
+
 '''
