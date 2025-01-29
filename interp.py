@@ -248,7 +248,10 @@ def evalInEnv(env: Env[Value], e: Expr) -> Value:
         # handles the rotate image
         case rotate(image) :
             #img = Image.open(image)
-            return image.rotate(90)
+            if isinstance(image, Image.Image):
+                return image.rotate(90)
+            else:
+                return evalError("You can only rotate Photos")
 
         # handles the combine image
         case combine(image1, image2) :
@@ -413,7 +416,7 @@ image2_path = Image.open("Image/image2.jpg")
 # Define the expression to combine two images twice
 
 # Run the expression
-test1 : Expr = combine(image1_path, image2_path)
+test1 : Expr = rotate(image1_path)
 run(test1)
 
 # Here is the link to the Pillow https://pillow.readthedocs.io/en/stable/handbook/tutorial.html
