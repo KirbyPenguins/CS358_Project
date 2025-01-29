@@ -465,18 +465,15 @@ test2: Expr = Let(
     )
 )
 
+# Define the expression with a proper binding
+# Test Expression #1
 test3: Expr = Let(
-    "image1",  # Name of the first variable
-    Lit(image1_path),  # Bind image1_path to "image1"
-    Let(  # Another Let to bind "image2"
-        "image2",  # Name of the second variable
-        Lit(image2_path),  # Bind image2_path to "image2"
-        combine(
-            rotate(Name("image1")),  # Apply lightening transformation on image1
-            rotate(Name("image2"))    # Apply darkening transformation on image2
-        )
-    )
+    "image1",  # Name of the variable
+    Lit(image1_path),  # Binding the actual image to "image1"
+    rotate(rotate(Name("image1")))  # Using the expression properly
 )
+
+
 # Uncomment out the code below to Run the expressions
 #run(test1)
 #run(test2)
