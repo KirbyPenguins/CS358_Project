@@ -1,8 +1,41 @@
 from dataclasses import dataclass
-from PIL import Image
+from PIL import Image, ImageEnhance
+
+#new value with info 
+type Color = image_color | opacity
+type Literal = Name | Image.Image
+type Expr = Add | Sub | Mul | Div | Lit | Let  | Neg | And | Or | Not | Eq | Lt | If
+
+
+@dataclass
+class opacity():
+    image = Image.Image
+    def __str__(self) -> str:
+        return f"Opacity({self.image})"
+
+@dataclass
+class image_color():
+    image = Image.Image
+    def __str__(self) -> str:
+        return f"Color({self.image})"
 
 
 type Action = rotate | combine
+#newly created operators
+type new_Action  = lighten | darken
+
+@dataclass
+class darken():
+    image : Image.Image
+    def __str__(self):
+        return f"darken({self.image})"
+
+@dataclass
+class lighten():
+    image : Image.Image
+    def __str__(self):
+        return f"lighte{self.image}"
+
 
 @dataclass
 class rotate():
@@ -18,9 +51,6 @@ class combine():
 
     def __str__(self):
         return f"combine({self.image1}, {self.image2})"
-
-type Literal = Name | Image.Image
-type Expr = Add | Sub | Mul | Div | Lit | Let  | Neg | And | Or | Not | Eq | Lt | If
 
 
 @dataclass
@@ -180,6 +210,9 @@ def evalInEnv(env: Env[Value], e: Expr) -> Value:
             right_val = evalInEnv(env, right)
             if type(left_val) == int and type(right_val) == int:
                 return left_val + right_val
+            if type(left_val) == Image.Image and type(right_val) == Image.Image:
+                new_image = combine(left_val, right_val)
+                return new_image
             else:
                 raise evalError("Addition requires two integers literals")
 
@@ -214,15 +247,17 @@ def evalInEnv(env: Env[Value], e: Expr) -> Value:
 
         # handles the rotate image
         case rotate(image) :
-            img = Image.open(image)
-            return img.rotate(90)
+            #img = Image.open(image)
+            return image.rotate(90)
 
         # handles the combine image
         case combine(image1, image2) :
-            img1 = Image.open(image1)
-            img2 = Image.open(image2)
+            #img1 = Image.open(image1)
+            #img2 = Image.open(image2)
+            img1 = image1
+            img2 = image2
             if img1.size[1] != img2.size[1]:
-                raise EvalError("Images must have the same height")
+                raise evalError("Images must have the same height")
             w = img1.size[0] + img2.size[0]
             h = max(img1.size[1], img2.size[1])
             combined_image = Image.new("RGB", (w, h))
@@ -234,7 +269,7 @@ def evalInEnv(env: Env[Value], e: Expr) -> Value:
         case Name (name) :
             v = lookupEnv(name, env)
             if v is None:
-                raise EvalError(f"Name {name} not found")
+                raise evalError(f"Name {name} not found")
             return v
         
         case Let(name, value, body) :
@@ -306,8 +341,10 @@ def evalInEnv(env: Env[Value], e: Expr) -> Value:
                     return True
                 else:
                     return False
+            elif isinstance(left_val, Image.Image) and isinstance(right_val, Image.Image):
+                return left_val.tobytes() == right_val.tobytes()
             else:
-                raise evalError("Eq requires a Boolean")
+                raise evalError("Eq requires two values of the same type")
 
 
         case Lt(left, right) :
@@ -330,7 +367,21 @@ def evalInEnv(env: Env[Value], e: Expr) -> Value:
                     return evalInEnv(env, else_branch)
             else:
                 raise evalError("If condition must be a boolean")
-                
+
+        case darken(image):
+            if isinstance(image, Image.Image):
+                enhancer = ImageEnhance.Brightness(image)
+                return enhancer.enhance(0.5)
+            else:
+                raise evalError("Can only Lighten an image")
+
+        case lighten(image):
+            if isinstance(image,Image.Image):
+                enhancer = ImageEnhance.Brightness(image)
+                return enhancer.enhance(1.5)  # Lighten the image
+            else:
+                raise evalError("Cannot lighten an image")
+
         case _:
             raise evalError(f"Unknown expression: {e}")
 
@@ -352,8 +403,8 @@ def run(e: Expr) -> None:
         print(f"Evaluation error: {e}")
 
 # Test condition
-image1_path = "Image/image1.jpg"
-image2_path = "Image/image2.jpg"
+image1_path = Image.open("Image/image1.jpg")
+image2_path = Image.open("Image/image2.jpg")
 
     
 # Define the expression
@@ -362,7 +413,7 @@ image2_path = "Image/image2.jpg"
 # Define the expression to combine two images twice
 
 # Run the expression
-test1 : Expr = And(Lit(False), Lit(6))
+test1 : Expr = combine(image1_path, image2_path)
 run(test1)
 
 # Here is the link to the Pillow https://pillow.readthedocs.io/en/stable/handbook/tutorial.html
