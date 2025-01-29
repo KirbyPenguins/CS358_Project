@@ -464,9 +464,23 @@ test2: Expr = Let(
         )
     )
 )
+
+test3: Expr = Let(
+    "image1",  # Name of the first variable
+    Lit(image1_path),  # Bind image1_path to "image1"
+    Let(  # Another Let to bind "image2"
+        "image2",  # Name of the second variable
+        Lit(image2_path),  # Bind image2_path to "image2"
+        combine(
+            rotate(Name("image1")),  # Apply lightening transformation on image1
+            rotate(Name("image2"))    # Apply darkening transformation on image2
+        )
+    )
+)
 # Uncomment out the code below to Run the expressions
-run(test1)
+#run(test1)
 #run(test2)
+run(test3)
 
 # Here is the link to the Pillow https://pillow.readthedocs.io/en/stable/handbook/tutorial.html
 '''
@@ -481,6 +495,4 @@ I have also created my own classes for image manipulations. I have created for r
 and combine. Whenever they are combined or rotate a new photo is made and is saved in a
 answer.png where it is easy to view. There will also be a pop up so that you can also 
 view it through that. (Please not that it takes a little while for the images to combine)
-
-
 '''
