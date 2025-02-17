@@ -489,8 +489,8 @@ test4: Expr = Let(
 # Uncomment out the code below to Run the expressions
 #run(test1)
 #run(test2)
-#run(test3)
-run(test4)
+run(test3)
+#run(test4)
 
 # Here is the link to the Pillow https://pillow.readthedocs.io/en/stable/handbook/tutorial.html
 '''
