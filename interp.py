@@ -22,19 +22,19 @@ class image_color():
 
 type Action = rotate | Combine
 #newly created operators
-type new_Action  = lighten | darken
+type new_Action  = lighten | Darken
 
 @dataclass
-class darken():
+class Darken():
     image : Image.Image
     def __str__(self):
-        return f"darken({self.image})"
+        return f"Darken({self.image})"
 
 @dataclass
 class lighten():
     image : Image.Image
     def __str__(self):
-        return f"lighte{self.image}"
+        return f"lighten{self.image}"
 
 
 @dataclass
@@ -427,7 +427,7 @@ def evalInEnv(env: Env[Value], e: Expr) -> Value:
             else:
                 raise evalError("If condition must be a boolean")
 
-        case darken(image):
+        case Darken(image):
             img = evalInEnv(env, image)
             if isinstance(img, Image.Image):
                 enhancer = ImageEnhance.Brightness(img)
@@ -499,7 +499,7 @@ image1_path = Image.open("Image/image1.jpg")
 test1: Expr = Let(
     "image1",  # Name of the variable
     Lit(image1_path),  # Binding the actual image to "image1"
-    rotate(darken(Name("image1")))  # Using the expression properly
+    rotate(Darken(Name("image1")))  # Using the expression properly
 )
 
 
@@ -513,7 +513,7 @@ test2: Expr = Let(
         Lit(image2_path),  # Bind image2_path to "image2"
         Combine(
             lighten(Name("image1")),  # Apply lightening transformation on image1
-            darken(Name("image2"))    # Apply darkening transformation on image2
+            Darken(Name("image2"))    # Apply Darkening transformation on image2
         )
     )
 )
@@ -537,7 +537,7 @@ test4: Expr = Let(
         Lit(3),  # Bind image2_path to "image2"
         Combine(
             lighten(Name("image1")),  # Apply lightening transformation on image1
-            (Name("image2"))    # Apply darkening transformation on image2
+            (Name("image2"))    # Apply Darkening transformation on image2
         )
     )
 )

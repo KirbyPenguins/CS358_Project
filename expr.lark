@@ -17,10 +17,13 @@ _FALSE: "false"
      | expr1 "&&" term -> andexpr
      | expr1 "||" term -> orexpr
      | expr1 "==" term -> eqexpr
+     | expr1 "<" term -> lessexpr
      | term
 
 ?term: term "*" factor -> times
      | term "/" factor -> divide
+     | term "dark" factor -> darken
+     | term "lighten" factor -> lighten
      | factor
 
 ?factor: "-" factor  -> neg
