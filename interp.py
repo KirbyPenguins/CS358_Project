@@ -4,7 +4,7 @@ from PIL import Image, ImageEnhance
 #new value with info 
 type Color = image_color | dom_color
 type Literal = Name | Image.Image
-type Expr = Add | Sub | Mul | Div | Lit | Let  | Neg | And | Or | Not | Eq | Lt | If
+type Expr = Add | Sub | Mul | Div | Lit | Let  | Neg | And | Or | Not | Eq | Lt | If | Letfun | App | Ifnz
 
 
 @dataclass
@@ -20,7 +20,7 @@ class image_color():
         return f"Color({self.image})"
 
 
-type Action = rotate | combine
+type Action = rotate | Combine
 #newly created operators
 type new_Action  = lighten | darken
 
@@ -45,7 +45,7 @@ class rotate():
 
 
 @dataclass
-class combine():
+class Combine():
     image1 : Image.Image
     image2 : Image.Image
 
@@ -156,6 +156,30 @@ class Let():
 
 
 @dataclass
+class Letfun():
+    name: str
+    params: list[str]
+    bodyexpr: Expr
+    inexpr: Expr
+    def __str__(self) -> str:
+        return f"letfun {self.name} ({",".join(self.params)}) = {self.bodyexpr} in {self.inexpr} end"
+    
+@dataclass
+class App():
+    fun: Expr
+    args: list[Expr]
+    def __str__(self) -> str:
+        return f"({self.fun} ({",".join(map(str,self.args))}))"
+
+@dataclass
+class Ifnz():
+    cond: Expr
+    thenexpr: Expr
+    elseexpr: Expr
+    def __str__(self) -> str:
+        return f"(if {self.cond} != 0 then {self.thenexpr} else {self.elseexpr})"
+    
+@dataclass
 class Name():
     name : str
     def __str__(self):
@@ -190,7 +214,13 @@ class Path:
     p: tuple[Action, ...]
 
 
-type Value = Image.Image | Path
+type Value = Image.Image | Path | Closure
+
+@dataclass
+class Closure:
+    params: list[str]
+    body: Expr
+    env: Env[Value]
 
 def eval(e: Expr) -> Value:
     return evalInEnv(empty_env, e)
@@ -238,7 +268,7 @@ def evalInEnv(env: Env[Value], e: Expr) -> Value:
             if type(left_val) == int and type(right_val) == int:
                 return left_val + right_val
             if type(left_val) == Image.Image and type(right_val) == Image.Image:
-                new_image = combine(left_val, right_val)
+                new_image = Combine(left_val, right_val)
                 return new_image
             else:
                 raise evalError("Addition requires two integers literals")
@@ -281,7 +311,7 @@ def evalInEnv(env: Env[Value], e: Expr) -> Value:
                 return evalError("You can only rotate Photos")
 
         # handles the combine image
-        case combine(image1, image2) :
+        case Combine(image1, image2) :
             img1 = evalInEnv(env,image1)
             img2 = evalInEnv(env, image2)
             if isinstance(img1, Image.Image) and isinstance(img2, Image.Image):
@@ -346,13 +376,11 @@ def evalInEnv(env: Env[Value], e: Expr) -> Value:
                 raise evalError("And requires two boolean literals")
 
 
-        case Not(value) :
+        case Not(value):
             val = evalInEnv(env, value)
-            if val == True:
-                return False
-            elif val == False:
-                return True
-            elif type(val) == int:
+            if isinstance(val, bool):
+                return not val
+            else:
                 raise evalError("Not requires a boolean literal")
 
         case Eq(left, right) :
@@ -415,6 +443,33 @@ def evalInEnv(env: Env[Value], e: Expr) -> Value:
             else:
                 raise evalError("Lighten requires an image")
 
+        case Ifnz(c,t,e):
+            match evalInEnv(env,c):
+                case 0:
+                    return evalInEnv(env, e)
+                case _:
+                    return evalInEnv(env,t)
+                    
+        case Letfun(n,ps,b,i):
+            if len(ps) != len(set(ps)):
+                raise evalError("duplicate parameter names")
+            c = Closure(ps,b,env)
+            newEnv = extendEnv(n,c,env)
+            c.env = newEnv                # support recursion
+            return evalInEnv(newEnv,i) 
+
+        case App(f,es):
+            fun = evalInEnv(env,f)
+            args = [evalInEnv(env,a) for a in es]
+            match fun:
+                case Closure(ps,b,cenv):
+                    if len(ps) != len(args):
+                        raise evalError("wrong number of arguments")
+                    newEnv = cenv
+                    for (param,arg) in zip(ps,args):
+                        newEnv = extendEnv(param,arg,newEnv)
+                    return evalInEnv(newEnv,b)
+
         case _:
             raise evalError(f"Unknown expression: {e}")
 
@@ -456,7 +511,7 @@ test2: Expr = Let(
     Let(  # Another Let to bind "image2"
         "image2",  # Name of the second variable
         Lit(image2_path),  # Bind image2_path to "image2"
-        combine(
+        Combine(
             lighten(Name("image1")),  # Apply lightening transformation on image1
             darken(Name("image2"))    # Apply darkening transformation on image2
         )
@@ -480,7 +535,7 @@ test4: Expr = Let(
     Let(  # Another Let to bind "image2"
         "image2",  # Name of the second variable
         Lit(3),  # Bind image2_path to "image2"
-        combine(
+        Combine(
             lighten(Name("image1")),  # Apply lightening transformation on image1
             (Name("image2"))    # Apply darkening transformation on image2
         )
@@ -489,7 +544,7 @@ test4: Expr = Let(
 # Uncomment out the code below to Run the expressions
 #run(test1)
 #run(test2)
-run(test3)
+#run(test3)
 #run(test4)
 
 # Here is the link to the Pillow https://pillow.readthedocs.io/en/stable/handbook/tutorial.html

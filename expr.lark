@@ -1,0 +1,44 @@
+%import common.INT -> INT
+%import common.CNAME -> ID
+%import common.WS
+
+%ignore WS
+
+_TRUE: "true"
+_FALSE: "false"
+
+?expr: "ifnz" expr "then" expr "else" expr -> ifnz
+     | "lambda" params  "->" expr -> lam
+     | expr1
+
+?expr1: expr1 "+" term  -> plus
+     | expr1 "-" term -> minus
+     | expr1 "combine" term -> combine
+     | expr1 "&&" term -> andexpr
+     | expr1 "||" term -> orexpr
+     | expr1 "==" term -> eqexpr
+     | term
+
+?term: term "*" factor -> times
+     | term "/" factor -> divide
+     | factor
+
+?factor: "-" factor  -> neg
+       | "!" factor -> notexpr
+       |  atom
+
+?action: expr "combine" expr -> combine
+
+?args: (expr ("," expr)*)? -> args
+
+?params: (ID ("," ID)*)? -> params
+
+?atom: _TRUE -> true 
+     | _FALSE -> false
+     | ID  -> id
+     | INT -> int
+     | atom "(" args ")" -> app
+     | "(" expr ")"    
+     | "let" ID "=" expr "in" expr "end" -> let
+     | "letfun" ID "(" params ")" "=" expr "in" expr "end" -> letfun
+
