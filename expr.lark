@@ -8,29 +8,32 @@ _TRUE: "true"
 _FALSE: "false"
 
 ?expr: "ifnz" expr "then" expr "else" expr -> ifnz
-     | "lambda" params  "->" expr -> lam
      | expr1
 
-?expr1: expr1 "+" term  -> plus
-     | expr1 "-" term -> minus
-     | expr1 "combine" term -> combine
+?expr1:rotateexp
+     | combineexp
+     | lightenexp
+     | darkenexp
      | expr1 "&&" term -> andexpr
      | expr1 "||" term -> orexpr
      | expr1 "==" term -> eqexpr
      | expr1 "<" term -> lessexpr
+     | expr1 "+" term  -> plus
+     | expr1 "-" term -> minus
      | term
+
+rotateexp: "rotate" "(" expr ")"
+combineexp: "combine" "(" expr "," expr ")"
+lightenexp: "lighten" "(" expr ")"
+darkenexp: "darken" "(" expr ")"
 
 ?term: term "*" factor -> times
      | term "/" factor -> divide
-     | term "dark" factor -> darken
-     | term "lighten" factor -> lighten
      | factor
 
-?factor: "-" factor  -> neg
-       | "!" factor -> notexpr
-       |  atom
-
-?action: expr "combine" expr -> combine
+?factor:"!" factor -> notexpr
+     | "-" factor  -> neg
+     |  atom
 
 ?args: (expr ("," expr)*)? -> args
 

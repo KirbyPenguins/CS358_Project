@@ -1,11 +1,12 @@
-from interp import Add, Sub, Mul, Not, Div, Neg, Or, Let, Name, Lit, Ifnz, Letfun, Expr, App, run, Combine, And, Eq, lighten, Darken,Lt
+from interp import Literal, Add, Sub, Mul, Not, Div, Neg, Or, Let, Name, Lit, Ifnz, Letfun, Expr, App, run, Combine, And, Eq, Lighten, Darken, Lt, Rotate
 from lark import Lark, Token, ParseTree, Transformer
 from lark.exceptions import VisitError
 from pathlib import Path
+from PIL import Image
 
 parser = Lark(Path('expr.lark').read_text(),start='expr',ambiguity='explicit', lexer = "basic")
 # to check against ambiguity:
-#parser = Lark(Path('expr.lark').read_text(),start='expr',parser='lalr',strict=True, lexer = "basic")
+#parser = Lark(Path('expr.lark').read_text(),start='expr',parser='lalr',strict=True)
 
 class ParseError(Exception): 
     pass
@@ -34,7 +35,12 @@ class ToExpr(Transformer[Token,Expr]):
     def let(self, args:tuple[Token,Expr,Expr]) -> Expr:
         return Let(args[0].value,args[1],args[2]) 
     def id(self, args:tuple[Token]) -> Expr:
-        return Name(args[0].value)
+        if args[0].value == "image1":
+              return Image.open("Image/image1.jpg")
+        elif args[0].value == "image2":
+              return Image.open("Image/image2.jpg")
+        else:
+            return Name(args[0].value)
     def int(self,args:tuple[Token]) -> Expr:
         return Lit(int(args[0].value))
     def true(self, args:tuple) -> Expr:
@@ -51,12 +57,14 @@ class ToExpr(Transformer[Token,Expr]):
         return Letfun(args[0].value,args[1],args[2],args[3])
     def app(self,args:tuple[Expr,list[Expr]]) -> Expr:
         return App(args[0],args[1])    
-    def combine(self, args:tuple[Expr,Expr]) -> Expr:
+    def combineexp(self, args:tuple[Expr,Expr]) -> Expr:
         return Combine(args[0], args[1])
-    def lighten(self, args:tuple[Expr]) -> Expr:
-        return lighten(args[0])
-    def Darken(self, args:tuple[Expr]) -> Expr:
+    def lightenexp(self, args:tuple[Expr]) -> Expr:
+        return Lighten(args[0])
+    def darkenexp(self, args:tuple[Expr]) -> Expr:
         return Darken(args[0])
+    def rotateexp(self, args:tuple[Expr]) -> Expr:
+        return Rotate(args[0])
     def andexpr(self, args:tuple[Expr,Expr]) -> Expr:
         return And(args[0], args[1])
     def orexpr(self, args:tuple[Expr,Expr]) -> Expr:
@@ -67,7 +75,6 @@ class ToExpr(Transformer[Token,Expr]):
         return Lt(args[0], args[1])
     def notexpr(self, args:tuple[Expr]) -> Expr:
         return Not(args[0])
-
     def _ambig(self,_) -> Expr:    # ambiguity marker
         raise AmbiguousParse()
 
@@ -82,26 +89,54 @@ def genAST(t:ParseTree) -> Expr:
         else:
             raise e
 
-def driver():
-    while True:
-        try:
-            s = input('expr: ')
-            t = parse(s)
-            print("raw:", t)    
-            print("pretty:")
-            print(t.pretty())
-            ast = genAST(t)
-            print("raw AST:", repr(ast))  # use repr() to avoid str() pretty-printing
-            run(ast)                      # pretty-prints and executes the AST
-        except AmbiguousParse:
-            print("ambiguous parse")                
-        except ParseError as e:
-            print("parse error:")
-            print(e)
-        except EOFError:
-            break
+def driver(s:str):
+    try:
+        #s = input('expr: ')
+        t = parse(s)
+        print("raw:", t)    
+        print("pretty:")
+        print(t.pretty())
+        ast = genAST(t)
+        print("raw AST:", repr(ast))  # use repr() to avoid str() pretty-printing
+        run(ast)                      # pretty-prints and executes the AST
+    except AmbiguousParse:
+        print("ambiguous parse")                
+    except ParseError as e:
+        print("parse error:")
+        print(e)
+    except EOFError:
+        pass
 
-driver()
+def test():
+    var1 = "10 * (9 + 6)"
+    var2 = "true && false"
+    var3 = "true || !false"
+    var4 = "ifnz 1 then 42 else 0"
+    var5 = "combine(1, 2)" #will print an error
+    var6 = "combine(darken(image1), lighten(image2))"
+    var7 = "1+2*2" #to show that my order of presedence works
+
+    driver(var1)
+    print("\n")
+    driver(var2)
+    print("\n")
+    driver(var3)
+    print("\n")
+    driver(var4)
+    print("\n")
+    driver(var5)
+    print("\n")
+    driver(var6)
+    print("\n")
+    driver(var7)
+
+
+
+
+    
+
+if __name__ == "__main__":
+    test()
 
 
 ''' In this project milestone we have added 2 new
@@ -116,4 +151,13 @@ The expr.lark file defines the grammer for the custom expression.
 This gammer specifies the syntax rules for valid expressions in 
 the language. epr.lark also combines and defines how expressions
 are structered and how they can be combined.
+
+I have implemented all of my domain specific expanisions. It prints
+a parser tree and everything. However, I was not able to figure out
+how to make it actually manipulate the image. When I try to 
+return the image, I get an error that states an unkown expression
+and I do not know how to change it. I have also commented out 
+the ambiguity check. All you have to do is comment the main one and 
+then uncomment that and run it. When I ran it I did not get any errors
+so I am assuming that ther is no issues and everuthing is non-ambiguous. 
 '''

@@ -20,9 +20,9 @@ class image_color():
         return f"Color({self.image})"
 
 
-type Action = rotate | Combine
+type Action = Rotate | Combine
 #newly created operators
-type new_Action  = lighten | Darken
+type new_Action  = Lighten | Darken
 
 @dataclass
 class Darken():
@@ -31,14 +31,14 @@ class Darken():
         return f"Darken({self.image})"
 
 @dataclass
-class lighten():
-    image : Image.Image
+class Lighten():
+    image : Expr
     def __str__(self):
-        return f"lighten{self.image}"
+        return f"lighte{self.image}"
 
 
 @dataclass
-class rotate():
+class Rotate():
     image : Image.Image
     def __str__(self):
         return f"rotate({self.image})"
@@ -303,7 +303,7 @@ def evalInEnv(env: Env[Value], e: Expr) -> Value:
                 raise evalError("Division requires two integer literals")
 
         # handles the rotate image
-        case rotate(image) :
+        case Rotate(image) :
             img = evalInEnv(env,image)
             if isinstance(img, Image.Image):
                 return img.rotate(90)
@@ -376,11 +376,13 @@ def evalInEnv(env: Env[Value], e: Expr) -> Value:
                 raise evalError("And requires two boolean literals")
 
 
-        case Not(value):
+        case Not(value) :
             val = evalInEnv(env, value)
-            if isinstance(val, bool):
-                return not val
-            else:
+            if val == True:
+                return False
+            elif val == False:
+                return True
+            elif type(val) == int:
                 raise evalError("Not requires a boolean literal")
 
         case Eq(left, right) :
@@ -435,7 +437,7 @@ def evalInEnv(env: Env[Value], e: Expr) -> Value:
             else:
                 raise evalError("Darken requires an image")
 
-        case lighten(image):
+        case Lighten(image):
             img = evalInEnv(env, image)
             if isinstance(img, Image.Image):
                 enhancer = ImageEnhance.Brightness(img)
@@ -499,7 +501,7 @@ image1_path = Image.open("Image/image1.jpg")
 test1: Expr = Let(
     "image1",  # Name of the variable
     Lit(image1_path),  # Binding the actual image to "image1"
-    rotate(Darken(Name("image1")))  # Using the expression properly
+    Rotate(Darken(Name("image1")))  # Using the expression properly
 )
 
 
@@ -512,7 +514,7 @@ test2: Expr = Let(
         "image2",  # Name of the second variable
         Lit(image2_path),  # Bind image2_path to "image2"
         Combine(
-            lighten(Name("image1")),  # Apply lightening transformation on image1
+            Lighten(Name("image1")),  # Apply Lightening transformation on image1
             Darken(Name("image2"))    # Apply Darkening transformation on image2
         )
     )
@@ -523,7 +525,7 @@ test2: Expr = Let(
 test3: Expr = Let(
     "image1",  # Name of the variable
     Lit(image1_path),  # Binding the actual image to "image1"
-    rotate(rotate(Name("image1")))  # Using the expression properly
+    Rotate(Rotate(Name("image1")))  # Using the expression properly
 )
 
 # Test Expression #4
@@ -536,7 +538,7 @@ test4: Expr = Let(
         "image2",  # Name of the second variable
         Lit(3),  # Bind image2_path to "image2"
         Combine(
-            lighten(Name("image1")),  # Apply lightening transformation on image1
+            Lighten(Name("image1")),  # Apply Lightening transformation on image1
             (Name("image2"))    # Apply Darkening transformation on image2
         )
     )
