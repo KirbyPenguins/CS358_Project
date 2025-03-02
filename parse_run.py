@@ -1,5 +1,7 @@
+#!/Users/kirbyfaverty/Documents/GitHub/CS358_Project/.venv/bin/python
 from interp import Literal, Add, Sub, Mul, Not, Div, Neg, Or, Let, Name, Lit, Ifnz, Letfun, Expr, App, run, Combine, And, Eq, Lighten, Darken, Lt, Rotate
-from lark import Lark, Token, ParseTree, Transformer
+from lark import Lark, Token, Transformer
+from lark.tree import ParseTree
 from lark.exceptions import VisitError
 from pathlib import Path
 from PIL import Image

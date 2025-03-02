@@ -472,6 +472,9 @@ def evalInEnv(env: Env[Value], e: Expr) -> Value:
                         newEnv = extendEnv(param,arg,newEnv)
                     return evalInEnv(newEnv,b)
 
+        case Image.Image():
+            return e
+
         case _:
             raise evalError(f"Unknown expression: {e}")
 
