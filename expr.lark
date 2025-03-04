@@ -10,7 +10,9 @@ _FALSE: "false"
 ?expr: "ifnz" expr "then" expr "else" expr -> ifnz
      | expr1
 
-?expr1:rotateexp
+?expr1: blurexp
+     | invertexp
+     | rotateexp
      | combineexp
      | lightenexp
      | darkenexp
@@ -22,6 +24,8 @@ _FALSE: "false"
      | expr1 "-" term -> minus
      | term
 
+blurexp: "blur" "(" expr ")"
+invertexp: "invert" "(" expr ")"
 rotateexp: "rotate" "(" expr ")"
 combineexp: "combine" "(" expr "," expr ")"
 lightenexp: "lighten" "(" expr ")"

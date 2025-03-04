@@ -1,5 +1,5 @@
 #!/Users/kirbyfaverty/Documents/GitHub/CS358_Project/.venv/bin/python
-from interp import Literal, Add, Sub, Mul, Not, Div, Neg, Or, Let, Name, Lit, Ifnz, Letfun, Expr, App, run, Combine, And, Eq, Lighten, Darken, Lt, Rotate
+from interp import Literal, Add, Sub, Mul, Not, Div, Neg, Or, Let, Name, Lit, Ifnz, Letfun, Expr, App, run, Combine, And, Eq, Lighten, Darken, Lt, Rotate, Blur, Invert
 from lark import Lark, Token, Transformer
 from lark.tree import ParseTree
 from lark.exceptions import VisitError
@@ -24,6 +24,10 @@ class AmbiguousParse(Exception):
 
 class ToExpr(Transformer[Token,Expr]):
     '''Defines a transformation from a parse tree into an AST'''
+    def invertexp(self, args:tuple[Expr]) -> Expr:
+        return Invert(args[0])
+    def blurexp(self, args:tuple[Expr]) -> Expr:
+        return Blur(args[0])
     def plus(self, args:tuple[Expr,Expr]) -> Expr:
         return Add(args[0],args[1])
     def times(self, args:tuple[Expr,Expr]) -> Expr:
@@ -115,7 +119,7 @@ def test():
     var3 = "true || !false"
     var4 = "ifnz 1 then 42 else 0"
     var5 = "combine(1, 2)" #will print an error
-    var6 = "combine(darken(image1), lighten(image2))"
+    var6 = "blur(invert(image1))"
     var7 = "1+2*2" #to show that my order of presedence works
 
     driver(var1)

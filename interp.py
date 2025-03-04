@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from PIL import Image, ImageEnhance
+from PIL import Image, ImageEnhance, ImageFilter, ImageOps
 
 #new value with info 
 type Color = image_color | dom_color
@@ -22,8 +22,20 @@ class image_color():
 
 type Action = Rotate | Combine
 #newly created operators
-type new_Action  = Lighten | Darken
+type new_Action  = Lighten | Darken | Blur | Invert
 
+@dataclass
+class Blur():
+    image : Image.Image
+    def __str__(self):
+        return f"Blur({self.image})"
+    
+@dataclass
+class Invert():
+    image : Image.Image
+    def __str__(self):
+        return f"Invert({self.image})"
+    
 @dataclass
 class Darken():
     image : Image.Image
@@ -227,6 +239,18 @@ def eval(e: Expr) -> Value:
 
 def evalInEnv(env: Env[Value], e: Expr) -> Value:
     match e:
+        case Blur(image):
+            img = evalInEnv(env, image)
+            if isinstance(img, Image.Image):
+                return img.filter(ImageFilter.BLUR)
+            else:
+                raise evalError("You must provide an image")
+        case Invert(image):
+            img = evalInEnv(env, image)
+            if isinstance(img, Image.Image):
+                return ImageOps.invert(img)
+            else:
+                raise evalError("You must provide an image")
         case dom_color(image):
             image = eval(env, image)  # Evaluate the image expression
             if isinstance(image, Image.Image):
@@ -504,7 +528,7 @@ image1_path = Image.open("Image/image1.jpg")
 test1: Expr = Let(
     "image1",  # Name of the variable
     Lit(image1_path),  # Binding the actual image to "image1"
-    Rotate(Darken(Name("image1")))  # Using the expression properly
+    (Invert(Name("image1")))  # Using the expression properly
 )
 
 
