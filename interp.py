@@ -4,7 +4,7 @@ from PIL import Image, ImageEnhance, ImageFilter, ImageOps
 #new value with info 
 type Color = image_color | dom_color
 type Literal = Name | Image.Image
-type Expr = Add | Sub | Mul | Div | Lit | Let  | Neg | And | Or | Not | Eq | Lt | If | Letfun | App | Ifnz
+type Expr = Add | Sub | Mul | Div | Lit | Let  | Neg | And | Or | Not | Eq | Lt | If | Letfun | App | Ifnz | Assign
 
 
 @dataclass
@@ -198,6 +198,14 @@ class Name():
         return self.name
 
 
+@dataclass
+class Assign():
+    name: str
+    value: Expr
+    def __str__(self):
+        return f"{self.name} := {self.value}"
+
+
 type Binding[V] = tuple[str, V]
 type Env[V] = list[Binding[V], ...] # type:ignore this is a type with a arbitary length 
 
@@ -205,6 +213,14 @@ from typing import Any
 
 empty_env : Env[Any] = ()
 
+# model memory locations as (mutable) singleton lists
+type Loc[V] = list[V] # always a singleton list
+def newLoc[V](value: V) -> Loc[V]:
+    return [value]
+def getLoc[V](loc: Loc[V]) -> V:
+    return loc[0]
+def setLoc[V](loc: Loc[V], value: V) -> None:
+    loc[0] = value
 def extendEnv[V](env : Env[V], name : str, value : V) -> Env[V]:
     return env + ((name, value),)
 
@@ -239,6 +255,14 @@ def eval(e: Expr) -> Value:
 
 def evalInEnv(env: Env[Value], e: Expr) -> Value:
     match e:
+        case Assign(name, value):
+            v = evalInEnv(env, value)
+            if v is None:
+                raise evalError(f"Name {name} not found")
+            l = evalInEnv(env, Name(name))
+            setLoc(l, v)
+
+            return None
         case Blur(image):
             img = evalInEnv(env, image)
             if isinstance(img, Image.Image):

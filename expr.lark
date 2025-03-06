@@ -22,6 +22,7 @@ _FALSE: "false"
      | expr1 "<" term -> lessexpr
      | expr1 "+" term  -> plus
      | expr1 "-" term -> minus
+     | expr1 ":=" term -> assign
      | term
 
 blurexp: "blur" "(" expr ")"

@@ -1,5 +1,5 @@
 #!/Users/kirbyfaverty/Documents/GitHub/CS358_Project/.venv/bin/python
-from interp import Literal, Add, Sub, Mul, Not, Div, Neg, Or, Let, Name, Lit, Ifnz, Letfun, Expr, App, run, Combine, And, Eq, Lighten, Darken, Lt, Rotate, Blur, Invert
+from interp import Literal, Add, Sub, Mul, Not, Div, Neg, Or, Let, Name, Lit, Ifnz, Letfun, Expr, App, run, Combine, And, Eq, Lighten, Darken, Lt, Rotate, Blur, Invert, Assign
 from lark import Lark, Token, Transformer
 from lark.tree import ParseTree
 from lark.exceptions import VisitError
@@ -81,6 +81,8 @@ class ToExpr(Transformer[Token,Expr]):
         return Lt(args[0], args[1])
     def notexpr(self, args:tuple[Expr]) -> Expr:
         return Not(args[0])
+    def assign(self, args:tuple[Token,Expr]) -> Expr:
+        return Assign(args[0].value, args[1])
     def _ambig(self,_) -> Expr:    # ambiguity marker
         raise AmbiguousParse()
 
@@ -119,7 +121,7 @@ def test():
     var3 = "true || !false"
     var4 = "ifnz 1 then 42 else 0"
     var5 = "combine(1, 2)" #will print an error
-    var6 = "blur(invert(image1))"
+    #var6 = "blur(invert(image1))"
     var7 = "1+2*2" #to show that my order of presedence works
 
     driver(var1)
@@ -132,7 +134,7 @@ def test():
     print("\n")
     driver(var5)
     print("\n")
-    driver(var6)
+    #driver(var6)
     print("\n")
     driver(var7)
 
