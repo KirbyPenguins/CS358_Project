@@ -4,7 +4,7 @@ from PIL import Image, ImageEnhance, ImageFilter, ImageOps
 #new value with info 
 type Color = image_color | dom_color
 type Literal = Name | Image.Image
-type Expr = Add | Sub | Mul | Div | Lit | Let  | Neg | And | Or | Not | Eq | Lt | If | Letfun | App | Ifnz | Assign
+type Expr = Add | Sub | Mul | Div | Lit | Let  | Neg | And | Or | Not | Eq | Lt | If | Letfun | App | Ifnz | Assign | Read | Show | Seq
 
 
 @dataclass
@@ -63,6 +63,28 @@ class Combine():
 
     def __str__(self):
         return f"combine({self.image1}, {self.image2})"
+
+
+@dataclass
+class Show():
+    image : Expr | Image.Image
+    def __str__(self):
+        return f"Show({self.image})"
+
+
+@dataclass
+class Read():
+    expr : str
+    def __str__(self):
+        return f"Read({self.expr})"    
+
+
+@dataclass
+class Seq():
+    expr1 : Expr
+    expr2 : Expr
+    def __str__(self):
+        return f"Seq({self.expr1}, {self.expr2})"
 
 
 @dataclass
@@ -255,6 +277,30 @@ def eval(e: Expr) -> Value:
 
 def evalInEnv(env: Env[Value], e: Expr) -> Value:
     match e:
+        case Seq(e1, e2):
+            evalInEnv(env, e1)
+            return evalInEnv(env, e2)
+
+        case Read(expr):
+            try:
+                return int(input(expr))
+            except ValueError:
+                raise evalError("Invalid input: expected an integer")
+
+        case Show(image):
+            img = evalInEnv(env, image)
+            if isinstance(img, Image.Image):
+                img.show()
+                return img
+            elif isinstance(img, bool):
+                print(img)
+                return img
+            elif isinstance(img, int):
+                print(img)
+                return img
+            else:
+                raise evalError("You must provide an image or a valid literal")
+
         case Assign(name, value):
             v = evalInEnv(env, value)
             if v is None:
@@ -424,13 +470,11 @@ def evalInEnv(env: Env[Value], e: Expr) -> Value:
                 raise evalError("And requires two boolean literals")
 
 
-        case Not(value) :
+        case Not(value):
             val = evalInEnv(env, value)
-            if val == True:
-                return False
-            elif val == False:
-                return True
-            elif type(val) == int:
+            if isinstance(val, bool):
+                return not val
+            else:
                 raise evalError("Not requires a boolean literal")
 
         case Eq(left, right) :
@@ -452,10 +496,7 @@ def evalInEnv(env: Env[Value], e: Expr) -> Value:
                 else:
                     return False
             elif isinstance(left_val, Image.Image) and isinstance(right_val, Image.Image):
-                return left_val.tobytes() == right_val.tobytes()
-            else:
-                raise evalError("Eq requires two values of the same type")
-
+                return left_val.tobytes()
         case Lt(left, right) :
             left_val = evalInEnv(env, left)
             right_val = evalInEnv(env, right)

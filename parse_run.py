@@ -1,5 +1,5 @@
 #!/Users/kirbyfaverty/Documents/GitHub/CS358_Project/.venv/bin/python
-from interp import Literal, Add, Sub, Mul, Not, Div, Neg, Or, Let, Name, Lit, Ifnz, Letfun, Expr, App, run, Combine, And, Eq, Lighten, Darken, Lt, Rotate, Blur, Invert, Assign
+from interp import Add, Sub, Mul, Not, Div, Neg, Or, Let, Name, Lit, Ifnz, Letfun, Expr, App, run, Combine, And, Eq, Lighten, Darken, Lt, Rotate, Blur, Invert, Assign, Read, Seq, Show
 from lark import Lark, Token, Transformer
 from lark.tree import ParseTree
 from lark.exceptions import VisitError
@@ -24,6 +24,12 @@ class AmbiguousParse(Exception):
 
 class ToExpr(Transformer[Token,Expr]):
     '''Defines a transformation from a parse tree into an AST'''
+    def seqexp(self, args:tuple[Expr,Expr]) -> Expr:
+        return Seq(args[0],args[1])
+    def showexp(self, args:tuple[Expr]) -> Expr:
+        return Show(args[0])
+    def readexp(self, args:tuple[Expr]) -> Expr:
+        return Read(args[0])
     def invertexp(self, args:tuple[Expr]) -> Expr:
         return Invert(args[0])
     def blurexp(self, args:tuple[Expr]) -> Expr:
@@ -97,6 +103,10 @@ def genAST(t:ParseTree) -> Expr:
         else:
             raise e
 
+def just_parse(s: str) -> Expr:
+    t = parse(s)
+    return genAST(t)
+
 def driver(s:str):
     try:
         #s = input('expr: ')
@@ -137,11 +147,6 @@ def test():
     #driver(var6)
     print("\n")
     driver(var7)
-
-
-
-
-    
 
 if __name__ == "__main__":
     test()
