@@ -22,36 +22,35 @@ _FALSE: "false"
      | expr4 "-" expr4 -> minus
      | expr4
 
-?expr4: term "*" factor -> times
-     | term "/" factor -> divide
-     | factor
+?expr4: term "*" term -> times
+     | term "/" term -> divide
+     | term
 
 ?term: "!" factor -> notexpr
      | "-" factor -> neg
-     | atom
+     | factor
 
 ?factor: _TRUE -> true
      | _FALSE -> false
      | ID -> id
      | INT -> int
-     | atom "(" args ")" -> app
+     | atom
+
+?atom: ID "(" args ")" -> app
      | "(" expr ")"
      | "let" ID "=" expr "in" expr "end" -> let
      | "letfun" ID "(" params ")" "=" expr "in" expr "end" -> letfun
 
 seqexp: "seq" expr "," expr
 runexp: "run" expr
+showexp: "show" expr
+blurexp: "blur" "(" expr ")"
+invertexp: "invert" "(" expr ")"
+rotateexp: "rotate" "(" expr ")"
+combineexp: "combine" "(" expr "," expr ")"
+lightenexp: "lighten" "(" expr ")"
+darkenexp: "darken" "(" expr ")"
 
 ?args: (expr ("," expr)*)? -> args
-
 ?params: (ID ("," ID)*)? -> params
-
-?atom: _TRUE -> true 
-     | _FALSE -> false
-     | ID  -> id
-     | INT -> int
-     | atom "(" args ")" -> app
-     | "(" expr ")"    
-     | "let" ID "=" expr "in" expr "end" -> let
-     | "letfun" ID "(" params ")" "=" expr "in" expr "end" -> letfun
 
