@@ -7,43 +7,27 @@
 _TRUE: "true"
 _FALSE: "false"
 
-?expr: "ifnz" expr "then" expr "else" expr -> ifnz
-     | expr1
+?expr: expr1 (";" expr1)* -> seq
 
-?expr1: expr2 "&&" expr2 -> andexpr
-     | expr2 "||" expr2 -> orexpr
+?expr1: "ifnz" expr "then" expr "else" expr -> ifnz
      | expr2
 
-?expr2: expr3 "==" expr3 -> eqexpr
-     | expr3 "<" expr3 -> lessexpr
-     | expr3
-
-?expr3: expr4 "+" expr4 -> plus
-     | expr4 "-" expr4 -> minus
-     | expr4
-
-?expr4: term "*" term -> times
-     | term "/" term -> divide
+?expr2: blurexp
+     | invertexp
+     | rotateexp
+     | combineexp
+     | lightenexp
+     | darkenexp
+     | expr2 "show" -> show
+     | expr2 ":=" term -> assign
+     | expr2 "&&" term -> andexpr
+     | expr2 "||" term -> orexpr
+     | expr2 "==" term -> eqexpr
+     | expr2 "<" term -> lessexpr
+     | expr2 "+" term  -> plus
+     | expr2 "-" term -> minus
      | term
 
-?term: "!" factor -> notexpr
-     | "-" factor -> neg
-     | factor
-
-?factor: _TRUE -> true
-     | _FALSE -> false
-     | ID -> id
-     | INT -> int
-     | atom
-
-?atom: ID "(" args ")" -> app
-     | "(" expr ")"
-     | "let" ID "=" expr "in" expr "end" -> let
-     | "letfun" ID "(" params ")" "=" expr "in" expr "end" -> letfun
-
-seqexp: "seq" expr "," expr
-runexp: "run" expr
-showexp: "show" expr
 blurexp: "blur" "(" expr ")"
 invertexp: "invert" "(" expr ")"
 rotateexp: "rotate" "(" expr ")"
@@ -51,6 +35,26 @@ combineexp: "combine" "(" expr "," expr ")"
 lightenexp: "lighten" "(" expr ")"
 darkenexp: "darken" "(" expr ")"
 
+?term: term "*" factor -> times
+     | term "/" factor -> divide
+     | factor
+
+?factor:"!" factor -> notexpr
+     | "-" factor  -> neg
+     |  atom
+
 ?args: (expr ("," expr)*)? -> args
+
 ?params: (ID ("," ID)*)? -> params
+
+?atom: _TRUE -> true 
+     | _FALSE -> false
+     | ID  -> id
+     | INT -> int
+     | atom "(" args ")" -> app
+     | "(" expr ")"    
+     | "let" ID "=" expr "in" expr "end" -> let
+     | "letfun" ID "(" params ")" "=" expr "in" expr "end" -> letfun
+
+start: expr
 

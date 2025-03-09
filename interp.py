@@ -236,13 +236,18 @@ from typing import Any
 empty_env : Env[Any] = ()
 
 # model memory locations as (mutable) singleton lists
-type Loc[V] = list[V] # always a singleton list
-def newLoc[V](value: V) -> Loc[V]:
-    return [value]
+type Loc[V] = list[V]
+
+def newLoc[V](v: V) -> Loc[V]:
+    return [v]
+
 def getLoc[V](loc: Loc[V]) -> V:
     return loc[0]
-def setLoc[V](loc: Loc[V], value: V) -> None:
-    loc[0] = value
+
+def setLoc[V](loc: Loc[V], v: V) -> None:
+    loc[0] = v
+
+
 def extendEnv[V](env : Env[V], name : str, value : V) -> Env[V]:
     return env + ((name, value),)
 
@@ -303,12 +308,12 @@ def evalInEnv(env: Env[Value], e: Expr) -> Value:
 
         case Assign(name, value):
             v = evalInEnv(env, value)
-            if v is None:
+            loc = lookupEnv(name, env)
+            if loc is None:
                 raise evalError(f"Name {name} not found")
-            l = evalInEnv(env, Name(name))
-            setLoc(l, v)
+            setLoc(loc, v)
+            return v
 
-            return None
         case Blur(image):
             img = evalInEnv(env, image)
             if isinstance(img, Image.Image):
@@ -429,8 +434,9 @@ def evalInEnv(env: Env[Value], e: Expr) -> Value:
         
         case Let(name, value, body) :
             v = evalInEnv(env, value)
-            new_env = extendEnv(env, name, v)
-            return evalInEnv (new_env, body)
+            l = newLoc(v)
+            newEnv = extendEnv(env, name, l)
+            return evalInEnv(newEnv, body)
 
         case Lit(lit):
             match lit:
@@ -545,9 +551,9 @@ def evalInEnv(env: Env[Value], e: Expr) -> Value:
             if len(ps) != len(set(ps)):
                 raise evalError("duplicate parameter names")
             c = Closure(ps,b,env)
-            newEnv = extendEnv(n,c,env)
-            c.env = newEnv                # support recursion
-            return evalInEnv(newEnv,i) 
+            loc = newLoc(c)
+            newEnv = extendEnv(env,n,loc)
+            return evalInEnv(newEnv,i)
 
         case App(f,es):
             fun = evalInEnv(env,f)

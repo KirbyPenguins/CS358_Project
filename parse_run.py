@@ -25,7 +25,10 @@ class AmbiguousParse(Exception):
 class ToExpr(Transformer[Token,Expr]):
     '''Defines a transformation from a parse tree into an AST'''
     def seqexp(self, args:tuple[Expr,Expr]) -> Expr:
-        return Seq(args[0],args[1])
+        if len(args) == 2:
+            return Seq(args[0], args[1])
+        else:
+            return Seq(args[0], self.seqexp(args[1:]))
     def showexp(self, args:tuple[Expr]) -> Expr:
         return Show(args[0])
     def readexp(self, args:tuple[Expr]) -> Expr:
@@ -126,27 +129,9 @@ def driver(s:str):
         pass
 
 def test():
-    var1 = "10 * (9 + 6)"
-    var2 = "true && false"
-    var3 = "true || !false"
-    var4 = "ifnz 1 then 42 else 0"
-    var5 = "combine(1, 2)" #will print an error
-    #var6 = "blur(invert(image1))"
-    var7 = "1+2*2" #to show that my order of presedence works
+    var1 = "a;b;c"
 
     driver(var1)
-    print("\n")
-    driver(var2)
-    print("\n")
-    driver(var3)
-    print("\n")
-    driver(var4)
-    print("\n")
-    driver(var5)
-    print("\n")
-    #driver(var6)
-    print("\n")
-    driver(var7)
 
 if __name__ == "__main__":
     test()
