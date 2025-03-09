@@ -201,9 +201,9 @@ class Letfun():
 @dataclass
 class App():
     fun: Expr
-    args: list[Expr]
+    args: Expr  # Change from list[Expr] to Expr to handle sequences
     def __str__(self) -> str:
-        return f"({self.fun} ({",".join(map(str,self.args))}))"
+        return f"({self.fun} ({self.args}))"
 
 @dataclass
 class Ifnz():
@@ -311,6 +311,8 @@ def evalInEnv(env: Env[Value], e: Expr) -> Value:
             loc = lookupEnv(name, env)
             if loc is None:
                 raise evalError(f"Name {name} not found")
+            if isinstance(loc[0], Closure):
+                raise evalError(f"Cannot assign to function {name}")
             setLoc(loc, v)
             return v
 

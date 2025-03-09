@@ -25,10 +25,12 @@ class AmbiguousParse(Exception):
 class ToExpr(Transformer[Token,Expr]):
     '''Defines a transformation from a parse tree into an AST'''
     def seqexp(self, args:tuple[Expr,Expr]) -> Expr:
-        if len(args) == 2:
-            return Seq(args[0], args[1])
+        if len(args) == 1:
+            return args[0]
+        elif len(args) >= 2:
+            return Seq(args[0],self.seqexp(args[1:]))
         else:
-            return Seq(args[0], self.seqexp(args[1:]))
+            raise ValueError("seqexp: len(args) < 1")
     def showexp(self, args:tuple[Expr]) -> Expr:
         return Show(args[0])
     def readexp(self, args:tuple[Expr]) -> Expr:
@@ -129,9 +131,9 @@ def driver(s:str):
         pass
 
 def test():
-    var1 = "a;b;c"
+    pass
 
-    driver(var1)
+
 
 if __name__ == "__main__":
     test()
