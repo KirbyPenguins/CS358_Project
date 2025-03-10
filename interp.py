@@ -311,10 +311,10 @@ def evalInEnv(env: Env[Value], e: Expr) -> Value:
             loc = lookupEnv(name, env)
             if loc is None:
                 raise evalError(f"Name {name} not found")
-            if isinstance(loc[0], Closure):
+            if isinstance(getLoc(loc), Closure):
                 raise evalError(f"Cannot assign to function {name}")
             setLoc(loc, v)
-            return getLoc(loc)  # Ensure the correct return type
+            return v  # Ensure the correct return type
 
         case Blur(image):
             img = evalInEnv(env, image)
@@ -550,24 +550,22 @@ def evalInEnv(env: Env[Value], e: Expr) -> Value:
                     return evalInEnv(env,t)
                     
         case Letfun(n,ps,b,i):
-            if len(ps) != len(set(ps)):
-                raise evalError("duplicate parameter names")
             c = Closure(ps,b,env)
             loc = newLoc(c)
             newEnv = extendEnv(env,n,loc)
+            c.env = newEnv
             return evalInEnv(newEnv,i)
 
         case App(f,es):
             fun = evalInEnv(env,f)
-            args = [evalInEnv(env,a) for a in es]
+            arg = evalInEnv(env,es)
             match fun:
                 case Closure(ps,b,cenv):
-                    if len(ps) != len(args):
-                        raise evalError("wrong number of arguments")
-                    newEnv = cenv
-                    for (param,arg) in zip(ps,args):
-                        newEnv = extendEnv(param,arg,newEnv)
+                    loc = newLoc(arg)
+                    newEnv = extendEnv(cenv,ps,loc)
                     return evalInEnv(newEnv,b)
+                case _:
+                    raise evalError("not a function")
 
         case Image.Image():
             return e

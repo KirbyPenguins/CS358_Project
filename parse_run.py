@@ -73,7 +73,7 @@ class ToExpr(Transformer[Token,Expr]):
     def letfun(self,args:tuple[Token,list[str],Expr,Expr]) -> Expr:
         return Letfun(args[0].value,args[1],args[2],args[3])
     def app(self,args:tuple[Expr,list[Expr]]) -> Expr:
-        return App(args[0],args[1])    
+        return App(args[0],args[1])
     def combineexp(self, args:tuple[Expr,Expr]) -> Expr:
         return Combine(args[0], args[1])
     def lightenexp(self, args:tuple[Expr]) -> Expr:
@@ -131,7 +131,7 @@ def driver(s:str):
         pass
 
 def test():
-    test1 = "if x then y else z; x := y"
+    test1 = "let f = letfun f(x) = x in f end in f := 1 end"
     driver(test1)
 
 if __name__ == "__main__":

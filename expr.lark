@@ -7,29 +7,39 @@
 _TRUE: "true"
 _FALSE: "false"
 
-?expr: expr ";" expr -> seqexp
-     | ID ":=" expr -> assign
-     | "if" expr "then" expr "else" expr -> ifnz
-     | runexp
-     | showexp
+?expr: runexp
      | blurexp
      | invertexp
      | rotateexp
      | combineexp
      | lightenexp
      | darkenexp
+     | seqexp
+     
+?seqexp: expr0 ";" seqexp -> seqexp
+     | expr0
+
+?expr0: ID ":=" expr01 -> assign
+     | expr01
+
+?expr01: "ifnz" expror "then" expr "else" expr0 -> ifnz
+     | showexp
+     | expror
+
+?expror: expror "||" exprand -> orexpr
+     | exprand
+
+?exprand: exprand "&&" exprnot -> andexpr
+     | exprnot
+
+?exprnot: "!" exprnot -> notexpr
      | expr1
 
-?expr1: expr1 "&&" expr2 -> andexpr
-     | expr1 "||" expr2 -> orexpr
-     | expr2
-
-?expr2: expr2 "==" expr3 -> eqexpr
-     | expr2 "<" expr3 -> lessexpr
+?expr1: expr3 "==" expr3 -> eqexpr
+     | expr3 "<" expr3 -> lessexpr
      | expr3
 
-?expr3: "!" expr3 -> notexpr
-     | expr3 "+" expr4 -> plus
+?expr3: expr3 "+" expr4 -> plus
      | expr3 "-" expr4 -> minus
      | expr4
 
@@ -38,21 +48,19 @@ _FALSE: "false"
      | expr5
 
 ?expr5: "-" expr5 -> neg
-     | factor
-
-?factor: _TRUE -> true
-     | _FALSE -> false
-     | ID -> id
-     | INT -> int
      | atom
 
-?atom: ID "(" args ")" -> app
+?atom: ID -> id
+     | INT -> int
+     | _TRUE -> true
+     | _FALSE -> false
+     | atom "(" expr ")" -> app
      | "(" expr ")"
      | "let" ID "=" expr "in" expr "end" -> let
-     | "letfun" ID "(" params ")" "=" expr "in" expr "end" -> letfun
+     | "letfun" ID "(" ID ")" "=" expr "in" expr "end" -> letfun
 
 runexp: "run" expr
-showexp: "show" expr
+showexp: "show" expr0
 blurexp: "blur" "(" expr ")"
 invertexp: "invert" "(" expr ")"
 rotateexp: "rotate" "(" expr ")"
@@ -60,7 +68,6 @@ combineexp: "combine" "(" expr "," expr ")"
 lightenexp: "lighten" "(" expr ")"
 darkenexp: "darken" "(" expr ")"
 
-?args: (expr ("," expr)*)? -> args
-?params: (ID ("," ID)*)? -> params
+
 
 start: expr
