@@ -131,9 +131,8 @@ def driver(s:str):
         pass
 
 def test():
-    pass
-
-
+    test1 = "if x then y else z; x := y"
+    driver(test1)
 
 if __name__ == "__main__":
     test()

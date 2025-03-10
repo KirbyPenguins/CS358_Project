@@ -314,7 +314,7 @@ def evalInEnv(env: Env[Value], e: Expr) -> Value:
             if isinstance(loc[0], Closure):
                 raise evalError(f"Cannot assign to function {name}")
             setLoc(loc, v)
-            return v
+            return getLoc(loc)  # Ensure the correct return type
 
         case Blur(image):
             img = evalInEnv(env, image)

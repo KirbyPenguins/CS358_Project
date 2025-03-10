@@ -714,7 +714,7 @@ class TestEval(unittest.TestCase):
         #
         # inputs: 14
         #
-        # outputs: 14
+        # outputs:14
         self.eval_equal(
             Show(Read()),
             14,

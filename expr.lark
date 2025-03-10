@@ -7,8 +7,9 @@
 _TRUE: "true"
 _FALSE: "false"
 
-?expr: ID ":=" expr -> assign
-     | "ifnz" expr "then" expr "else" expr -> ifnz
+?expr: expr ";" expr -> seqexp
+     | ID ":=" expr -> assign
+     | "if" expr "then" expr "else" expr -> ifnz
      | runexp
      | showexp
      | blurexp
@@ -18,28 +19,25 @@ _FALSE: "false"
      | lightenexp
      | darkenexp
      | expr1
-     | seqexp
 
-?expr1: expr2 "&&" expr2 -> andexpr
-     | expr2 "||" expr2 -> orexpr
+?expr1: expr1 "&&" expr2 -> andexpr
+     | expr1 "||" expr2 -> orexpr
      | expr2
 
-?expr2: "!" expr2 -> notexpr
-     | expr3 "==" expr3 -> eqexpr
-     | expr3 "<" expr3 -> lessexpr
+?expr2: expr2 "==" expr3 -> eqexpr
+     | expr2 "<" expr3 -> lessexpr
      | expr3
 
-?expr3: expr4 "+" expr4 -> plus
-     | expr4 "-" expr4 -> minus
+?expr3: "!" expr3 -> notexpr
+     | expr3 "+" expr4 -> plus
+     | expr3 "-" expr4 -> minus
      | expr4
 
-?expr4: expr5 "*" expr5 -> times
-     | expr5 "/" expr5 -> divide
+?expr4: expr4 "*" expr5 -> times
+     | expr4 "/" expr5 -> divide
      | expr5
 
-?expr5: term
-
-?term: "-" factor -> neg
+?expr5: "-" expr5 -> neg
      | factor
 
 ?factor: _TRUE -> true
@@ -64,7 +62,5 @@ darkenexp: "darken" "(" expr ")"
 
 ?args: (expr ("," expr)*)? -> args
 ?params: (ID ("," ID)*)? -> params
-
-?seqexp: expr ";" expr -> seqexp  
 
 start: expr
